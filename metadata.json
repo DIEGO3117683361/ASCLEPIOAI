@@ -1,0 +1,9 @@
+{
+  "name": "ASCLEPIO BETA 2.2 iOS ",
+  "description": "An interactive, voice-driven AI assistant named Asclepio. Engage in conversation, ask questions, and get assistance through a benevolent and wise AI persona. This application requires microphone and camera permissions to function.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "prompt": ""
+}

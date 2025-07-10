@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asclepio - AI Voice Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --background: #f7f7f7;
+        --text-primary: #1a1a1a;
+        --text-secondary: #6b6b6b;
+        --accent: #007aff;
+        --accent-glow: rgba(0, 122, 255, 0.5);
+        --accent-light: rgba(0, 122, 255, 0.1);
+        --error: #d93025;
+        --error-glow: rgba(217, 48, 37, 0.4);
+        --thinking-glow: rgba(175, 82, 222, 0.6);
+        --face-gradient-start: rgba(0, 122, 255, 0.03);
+        --face-gradient-end: rgba(0, 122, 255, 0);
+        --border-color: rgba(0, 0, 0, 0.08);
+        --control-bg: rgba(255, 255, 255, 0.65);
+        --board-bg: rgba(255, 255, 255, 0.6);
+        --bg-overlay: rgba(247, 247, 247, 0.7);
+      }
+
+      .dark {
+        --background: #111112;
+        --text-primary: #f0f0f0;
+        --text-secondary: #8e8e93;
+        --accent: #0a84ff;
+        --accent-glow: rgba(10, 132, 255, 0.6);
+        --accent-light: rgba(10, 132, 255, 0.15);
+        --error: #ff453a;
+        --error-glow: rgba(255, 69, 58, 0.5);
+        --thinking-glow: rgba(191, 90, 242, 0.7);
+        --face-gradient-start: rgba(10, 132, 255, 0.08);
+        --face-gradient-end: rgba(10, 132, 255, 0.01);
+        --border-color: rgba(255, 255, 255, 0.12);
+        --control-bg: rgba(28, 28, 30, 0.7);
+        --board-bg: rgba(28, 28, 30, 0.65);
+        --bg-overlay: rgba(17, 17, 18, 0.85);
+      }
+      
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text-primary);
+        transition: background-color 0.3s ease, color 0.3s ease;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.5s ease-out forwards;
+      }
+
+      @keyframes wakeUpOverlay {
+        0% { opacity: 1; }
+        80%, 100% { opacity: 0; pointer-events: none; }
+      }
+      .animate-wake-up {
+        animation: wakeUpOverlay 2.5s ease-out forwards;
+      }
+
+      @keyframes sleepOverlay {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+      }
+      .animate-sleep {
+         animation: sleepOverlay 2.5s ease-in forwards;
+      }
+
+      @keyframes wakeUpFace {
+        0% { transform: scale(0.8); opacity: 0.5; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      .animate-wake-up .animated-face {
+        animation: wakeUpFace 1.5s ease-out forwards;
+      }
+      
+      .animate-sleep .animated-face {
+        animation: wakeUpFace 1.5s ease-in reverse forwards;
+      }
+
+      .highlightable-content [id] {
+        transition: background-color 0.4s ease-in-out, box-shadow 0.4s ease-in-out;
+        scroll-margin-top: 20px;
+      }
+      .highlightable-content .highlighted {
+        background-color: var(--accent-light);
+        box-shadow: 0 0 10px var(--accent-glow);
+        border-radius: 8px;
+        padding: 2px 4px;
+        margin: -2px -4px;
+      }
+
+      .subtitles {
+        position: absolute;
+        bottom: 25%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80%;
+        max-width: 700px;
+        background-color: var(--control-bg);
+        color: var(--text-primary);
+        text-shadow: 0px 1px 2px rgba(0,0,0,0.1);
+        padding: 0.75rem 1.25rem;
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        text-align: center;
+        font-size: 1.2rem;
+        font-weight: 500;
+        line-height: 1.5;
+        z-index: 20;
+        pointer-events: none;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        animation: fadeIn 0.3s ease-out;
+      }
+
+      .dark .subtitles {
+         text-shadow: none;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(0,0,0,0.05);
+        border-radius: 10px;
+      }
+      .dark .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05);
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: var(--text-secondary);
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background-color: var(--accent);
+      }
+      
+      /* Tutorial Styles */
+      .tutorial-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 9998;
+        background-color: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(2px);
+      }
+
+      .tutorial-highlight {
+        position: absolute;
+        z-index: 9999;
+        border-radius: 9999px; /* Pill shape for buttons */
+        box-shadow: 0 0 0 4px var(--accent), 0 0 20px 5px var(--accent-glow);
+        transition: all 0.4s ease-in-out;
+        pointer-events: none;
+      }
+
+      .tutorial-popover {
+        position: absolute;
+        z-index: 10000;
+        background-color: var(--control-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1rem;
+        width: 280px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        transition: all 0.4s ease-in-out;
+        animation: fadeIn 0.4s ease-out;
+      }
+      
+      .tutorial-popover::after { /* Arrow */
+          content: '';
+          position: absolute;
+          border: 8px solid transparent;
+      }
+
+      .tutorial-popover.pos-bottom::after {
+          top: -16px;
+          left: 50%;
+          transform: translateX(-50%);
+          border-bottom-color: var(--control-bg);
+      }
+
+      .tutorial-popover.pos-top::after {
+          bottom: -16px;
+          left: 50%;
+          transform: translateX(-50%);
+          border-top-color: var(--control-bg);
+      }
+      
+       .tutorial-popover.pos-left::after {
+          right: -16px;
+          top: 50%;
+          transform: translateY(-50%);
+          border-left-color: var(--control-bg);
+      }
+
+      /* Welcome Screen Styles */
+      .info-card {
+        background-color: var(--control-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 1.25rem;
+        padding: 1.25rem 1.5rem;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        opacity: 0;
+        transform: translateY(20px);
+        animation: slideUpFadeIn 0.6s ease-out forwards;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-width: 320px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+      }
+
+      .dark .info-card {
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      }
+
+      .info-card-icon {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--accent-light);
+        color: var(--accent);
+        margin-bottom: 0.5rem;
+      }
+
+      .info-card h3 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .info-card p {
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: var(--text-secondary);
+      }
+
+      @keyframes slideUpFadeIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      @media (max-width: 1024px) {
+        .welcome-screen-container {
+          display: none;
+        }
+      }
+
+      /* Logo Styles */
+      .app-logo {
+        position: absolute;
+        top: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        font-family: 'Inter', sans-serif;
+        color: var(--text-secondary);
+        cursor: default;
+        white-space: nowrap;
+      }
+
+      .logo-idle {
+        font-size: 1.25rem;
+        font-weight: 200;
+        letter-spacing: 0.4em;
+        top: 4rem;
+      }
+
+      .logo-active {
+        font-size: 1rem;
+        font-weight: 300;
+        letter-spacing: 0.2em;
+      }
+      
+      .logo-idle span {
+        display: inline-block;
+        opacity: 0;
+        animation: letter-reveal 0.8s ease-out forwards;
+      }
+
+      @keyframes letter-reveal {
+        from {
+          opacity: 0;
+          transform: translateY(15px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      /* Asclepio Face Animations */
+      @keyframes floatAndBreathe {
+        0% { transform: translate(0, 0) scale(1); }
+        25% { transform: translate(1px, 2px) scale(1.015); }
+        50% { transform: translate(0, 4px) scale(1.03); }
+        75% { transform: translate(-1px, 2px) scale(1.015); }
+        100% { transform: translate(0, 0) scale(1); }
+      }
+      .animate-idle-face {
+        animation: floatAndBreathe 10s ease-in-out infinite;
+      }
+
+      @keyframes speakingBob {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-3px); }
+      }
+      .animate-speaking-face {
+          animation: speakingBob 1s ease-in-out infinite;
+      }
+
+      @keyframes blush-fade {
+          0%, 100% { opacity: 0; }
+          50% { opacity: 0.7; }
+      }
+      .blush-cheeks {
+          animation: blush-fade 2.5s ease-in-out infinite;
+      }
+
+      @keyframes glasses-fade-in {
+          from { opacity: 0; transform: translateY(-5px); }
+          to { opacity: 1; transform: translateY(0); }
+      }
+      .glasses {
+          animation: glasses-fade-in 0.5s ease-out forwards;
+      }
+
+      /* Custom Background Styles */
+      .app-bg-image {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+        background-position: center;
+        transition: all 0.5s ease;
+      }
+      .app-bg-overlay {
+        position: absolute;
+        inset: 0;
+        background-color: var(--bg-overlay);
+        transition: background-color 0.3s ease;
+      }
+
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^18.2.0",
+    "react-dom/": "https://esm.sh/react-dom@^18.2.0/",
+    "react/": "https://esm.sh/react@^18.2.0/",
+    "@google/genai": "https://esm.sh/@google/genai@^0.15.0",
+    "react-syntax-highlighter": "https://esm.sh/react-syntax-highlighter@15.5.0",
+    "react-syntax-highlighter/": "https://esm.sh/react-syntax-highlighter@15.5.0/",
+    "pdfjs-dist": "https://esm.sh/pdfjs-dist@^4.4.170",
+    "html2canvas": "https://esm.sh/html2canvas@^1.4.1",
+    "jspdf": "https://esm.sh/jspdf@^2.5.1",
+    "mammoth": "https://esm.sh/mammoth@^1.8.0",
+    "tesseract.js": "https://esm.sh/tesseract.js@^5.1.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
