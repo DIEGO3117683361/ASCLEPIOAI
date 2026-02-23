@@ -76,6 +76,10 @@ npm run dev
 - El endpoint `/api/transcribe` recibe `FormData` con `chunk` y lo envía a Whisper.
 - El endpoint `/api/summarize` exige JSON estructurado para poblar el bloque IA editable.
 - La UI es minimalista, con espacios amplios y color acento sutil.
+codex/create-fullstack-application-asclepio-tb9ca0
+=======
+codex/create-fullstack-application-asclepio-tw427c
+main
 
 
 ## Nota sobre GitHub Pages
@@ -83,3 +87,8 @@ npm run dev
 Este proyecto es una app de Next.js (no un sitio estático Vite).
 Si abres `index.html` directamente en un hosting estático verás una página informativa.
 La app real se ejecuta con runtime de Next (`npm run dev` / `next start`).
+codex/create-fullstack-application-asclepio-tb9ca0
+=======
+=======
+main
+main
